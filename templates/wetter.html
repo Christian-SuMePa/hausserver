@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Wetter</h2>
+
+<section id="warningBox"></section>
+
+<section class="cards" id="summaryCards">
+  <div class="card">
+    <h3>Heute: Höchsttemperatur</h3>
+    <p id="maxTemp">—</p>
+  </div>
+  <div class="card">
+    <h3>Heute: Tiefsttemperatur</h3>
+    <p id="minTemp">—</p>
+  </div>
+  <div class="card">
+    <h3>Sonnenscheindauer</h3>
+    <p id="sunDuration">—</p>
+  </div>
+  <div class="card">
+    <h3>Wetter</h3>
+    <p id="weatherSymbol">—</p>
+  </div>
+</section>
+
+<section class="charts">
+  <div class="chart-card">
+    <h3>Temperatur & Wetterart (heute + morgen)</h3>
+    <canvas id="forecastTemp"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Niederschlag (Wahrscheinlichkeit & Menge)</h3>
+    <canvas id="forecastPrecip"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Wind (Stärke & Richtung)</h3>
+    <canvas id="forecastWind"></canvas>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/wetter.js') }}"></script>
+{% endblock %}
