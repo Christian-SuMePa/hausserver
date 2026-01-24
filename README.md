@@ -64,6 +64,10 @@ pip install -r requirements.txt
   fehlt die Bibliothek `libgpiod2`. Auf aktuellen Raspberry-Pi-OS-Versionen ist dagegen
   `libgpiod3` verfügbar. Auf älteren Releases heißt das Paket nur `libgpiod`. In allen
   Fällen hilft der Fallback in der Installation oben.
+- Hinweis für Systeme, auf denen **nur** `libgpiod3` verfügbar ist: `adafruit_blinka`
+  erwartet aktuell `libgpiod.so.2`. Wenn `libgpiod2` nicht verfügbar ist, kann ein
+  Kompatibilitäts-Link helfen (auf eigene Verantwortung):  
+  `sudo ln -s /usr/lib/*/libgpiod.so.3 /usr/lib/*/libgpiod.so.2`
 
 ### 4) Verzeichnisse und Rechte
 
