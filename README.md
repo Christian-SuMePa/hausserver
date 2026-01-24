@@ -39,7 +39,9 @@ hausserver/
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod2
+sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod3 || \\
+  sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod2 || \\
+  sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod
 ```
 
 ### 2) Projekt holen und virtuelles Environment
@@ -59,7 +61,9 @@ pip install -r requirements.txt
 - **Lüfter** an **GPIO 4** (BCM) anschließen (über Transistor/Relais je nach Lüfter!).
 - Stromversorgung sicherstellen und die Schaltung gemäß DHT22/Relais-Datenblatt aufbauen.
 - Falls beim Start eine Meldung wie `libgpiod.so.2: cannot open shared object file` erscheint,
-  fehlt die Bibliothek `libgpiod2`. Die Installation oben behebt das Problem.
+  fehlt die Bibliothek `libgpiod2`. Auf aktuellen Raspberry-Pi-OS-Versionen ist dagegen
+  `libgpiod3` verfügbar. Auf älteren Releases heißt das Paket nur `libgpiod`. In allen
+  Fällen hilft der Fallback in der Installation oben.
 
 ### 4) Verzeichnisse und Rechte
 
