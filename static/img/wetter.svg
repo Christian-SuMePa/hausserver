@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="32" fill="#dbeafe" />
+  <circle cx="88" cy="88" r="36" fill="#fbbf24" />
+  <ellipse cx="160" cy="140" rx="60" ry="32" fill="#93c5fd" />
+  <ellipse cx="96" cy="152" rx="52" ry="28" fill="#bfdbfe" />
+  <text x="128" y="220" font-size="24" text-anchor="middle" fill="#1e3a8a" font-family="Segoe UI, sans-serif">Wetter</text>
+</svg>
