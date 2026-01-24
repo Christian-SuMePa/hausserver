@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="32" fill="#fef3c7" />
+  <polygon points="128,40 32,120 48,120 48,200 208,200 208,120 224,120" fill="#f97316" />
+  <rect x="88" y="136" width="80" height="64" fill="#fff7ed" />
+  <text x="128" y="228" font-size="24" text-anchor="middle" fill="#9a3412" font-family="Segoe UI, sans-serif">Dach</text>
+</svg>
