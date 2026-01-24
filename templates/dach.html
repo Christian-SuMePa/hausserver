@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Dachzimmer</h2>
+
+<section class="cards">
+  <div class="card">
+    <h3>Aktuelle Temperatur</h3>
+    <p>{{ latest.temperature_c if latest else '—' }} °C</p>
+  </div>
+  <div class="card">
+    <h3>Aktuelle Luftfeuchtigkeit</h3>
+    <p>{{ latest.humidity_percent if latest else '—' }} %</p>
+  </div>
+  <div class="card">
+    <h3>Aktueller Taupunkt</h3>
+    <p>{{ latest.dew_point_c if latest else '—' }} °C</p>
+  </div>
+</section>
+
+<section class="controls">
+  <label for="datePicker">Datum auswählen</label>
+  <input type="date" id="datePicker">
+  <label class="toggle">
+    <input type="checkbox" id="rawToggle">
+    <span>Rohdaten anzeigen</span>
+  </label>
+</section>
+
+<section class="charts">
+  <div class="chart-card">
+    <canvas id="tempChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <canvas id="humidityChart"></canvas>
+  </div>
+</section>
+
+<script src="{{ url_for('static', filename='js/dach.js') }}"></script>
+{% endblock %}

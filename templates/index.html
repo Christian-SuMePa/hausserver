@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="status">
+  <p>System: CPU-Temperatur: <strong>{{ cpu_temp }}</strong> °C</p>
+</section>
+
+<section class="tiles">
+  <a class="tile" href="/wetter">
+    <img src="{{ url_for('static', filename='img/wetter.svg') }}" alt="Wetter">
+    <span>Wetter</span>
+  </a>
+  <a class="tile" href="/dach">
+    <img src="{{ url_for('static', filename='img/dach.svg') }}" alt="Dachzimmer">
+    <span>Dach</span>
+  </a>
+</section>
+{% endblock %}
