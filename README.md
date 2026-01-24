@@ -39,7 +39,7 @@ hausserver/
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip sqlite3 git
+sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod2
 ```
 
 ### 2) Projekt holen und virtuelles Environment
@@ -58,6 +58,8 @@ pip install -r requirements.txt
 - **DHT22** an **GPIO 23** (BCM) anschließen.
 - **Lüfter** an **GPIO 4** (BCM) anschließen (über Transistor/Relais je nach Lüfter!).
 - Stromversorgung sicherstellen und die Schaltung gemäß DHT22/Relais-Datenblatt aufbauen.
+- Falls beim Start eine Meldung wie `libgpiod.so.2: cannot open shared object file` erscheint,
+  fehlt die Bibliothek `libgpiod2`. Die Installation oben behebt das Problem.
 
 ### 4) Verzeichnisse und Rechte
 
