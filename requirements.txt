@@ -1,0 +1,4 @@
+Flask==3.0.2
+adafruit-circuitpython-dht==4.0.5
+RPi.GPIO==0.7.1
+adafruit-blinka==8.39.0
