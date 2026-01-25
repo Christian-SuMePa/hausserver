@@ -15,7 +15,7 @@ let windChart;
 
 function formatDateLabel(ts) {
   const date = new Date(ts);
-  return date.toLocaleString("de-DE", { hour: "2-digit", day: "2-digit", month: "2-digit" });
+  return date.toLocaleString("de-DE", { hour: "2-digit" });
 }
 
 function warningLevel(severity) {
@@ -53,6 +53,59 @@ function renderSummary(summary) {
   weatherSymbol.textContent = summary.weather_symbol || "—";
 }
 
+function symbolFromCode(code) {
+  if (code == null) {
+    return "❔";
+  }
+  const codeInt = Math.trunc(code);
+  if ([0, 1, 2].includes(codeInt)) {
+    return "☀️";
+  }
+  if ([3, 4].includes(codeInt)) {
+    return "⛅";
+  }
+  if ([45, 48].includes(codeInt)) {
+    return "🌫️";
+  }
+  if (codeInt >= 51 && codeInt <= 67) {
+    return "🌦️";
+  }
+  if (codeInt >= 71 && codeInt <= 77) {
+    return "❄️";
+  }
+  if (codeInt >= 80 && codeInt <= 82) {
+    return "🌧️";
+  }
+  if (codeInt >= 95 && codeInt <= 99) {
+    return "⛈️";
+  }
+  return "☁️";
+}
+
+const weatherSymbolPlugin = {
+  id: "weatherSymbols",
+  afterDatasetsDraw(chart) {
+    const datasetIndex = 1;
+    const meta = chart.getDatasetMeta(datasetIndex);
+    const dataset = chart.data.datasets[datasetIndex];
+    if (!meta || !dataset) {
+      return;
+    }
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = "16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    meta.data.forEach((point, idx) => {
+      const symbol = dataset.data[idx]?.symbol;
+      if (symbol) {
+        ctx.fillText(symbol, point.x, point.y - 6);
+      }
+    });
+    ctx.restore();
+  },
+};
+
 function initCharts() {
   tempChart = new Chart(tempCtx, {
     type: "line",
@@ -73,6 +126,7 @@ function initCharts() {
         },
       ],
     },
+    plugins: [weatherSymbolPlugin],
   });
 
   precipChart = new Chart(precipCtx, {
@@ -143,6 +197,7 @@ function updateCharts(hourly) {
   tempChart.data.datasets[1].data = hourly.map((entry) => ({
     x: formatDateLabel(entry.time),
     y: entry.temperature_c,
+    symbol: symbolFromCode(entry.weather_code),
   }));
   tempChart.update();
 
