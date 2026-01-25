@@ -77,8 +77,13 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
 
     forecasts = {}
     for forecast in placemark.findall(".//dwd:Forecast", NS):
-        element_name = forecast.attrib.get("{http://www.dwd.de/forecast}elementName")
+        element_name = (
+            forecast.attrib.get("{http://www.dwd.de/forecast}elementName")
+            or forecast.attrib.get("elementName")
+        )
         value = forecast.findtext("dwd:value", default="", namespaces=NS)
+        if not value:
+            value = forecast.findtext("value", default="", namespaces=NS)
         if element_name:
             forecasts[element_name] = value.split()
 
@@ -86,7 +91,7 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
         series = forecasts.get(name, [])
         values: list[float | None] = []
         for entry in series:
-            if entry in ("-", ""):
+            if entry in ("-", "", "-999", "-999.0"):
                 values.append(None)
             else:
                 values.append(float(entry))
@@ -200,7 +205,12 @@ def fetch_weather() -> WeatherData:
 
     warnings: list[dict] = []
     hourly: list[dict] = []
-    today_summary: dict = {}
+    today_summary: dict = {
+        "max_temp": None,
+        "min_temp": None,
+        "sunshine_hours": None,
+        "weather_symbol": None,
+    }
 
     try:
         kml_bytes = _download(MOSMIX_URL.format(station=DWD_STATION_ID))
