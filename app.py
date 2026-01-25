@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import shutil
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -58,7 +59,22 @@ def create_app() -> Flask:
     @app.route("/")
     def index():
         cpu_temp = read_cpu_temperature_c()
-        return render_template("index.html", cpu_temp=cpu_temp)
+        try:
+            usage = shutil.disk_usage("/srv/storage/Fileserver")
+            fileserver_used = round(usage.used / 1_073_741_824, 1)
+            fileserver_free = round(usage.free / 1_073_741_824, 1)
+            fileserver_total = round(fileserver_used + fileserver_free, 1)
+        except OSError:
+            fileserver_total = None
+            fileserver_used = None
+            fileserver_free = None
+        return render_template(
+            "index.html",
+            cpu_temp=cpu_temp,
+            fileserver_total=fileserver_total,
+            fileserver_used=fileserver_used,
+            fileserver_free=fileserver_free,
+        )
 
     @app.route("/dach")
     def dach():
