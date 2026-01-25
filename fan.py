@@ -4,7 +4,8 @@ from __future__ import annotations
 import logging
 import time
 
-import RPi.GPIO as GPIO
+import board
+import digitalio
 
 from config import CPU_TEMP_CHECK_SECONDS, CPU_TEMP_OFF_C, CPU_TEMP_ON_C, FAN_PIN
 from sensors import read_cpu_temperature_c
@@ -17,19 +18,20 @@ class FanController:
 
     def __init__(self) -> None:
         self._is_on = False
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(FAN_PIN, GPIO.OUT, initial=GPIO.LOW)
+        self._pin = digitalio.DigitalInOut(getattr(board, f"D{FAN_PIN}"))
+        self._pin.direction = digitalio.Direction.OUTPUT
+        self._pin.value = False
 
     def cleanup(self) -> None:
         """Setzt den Lüfter auf AUS und räumt GPIO auf."""
         self.set_fan(False)
-        GPIO.cleanup()
+        self._pin.deinit()
 
     def set_fan(self, enabled: bool) -> None:
         """Schaltet den Lüfter und loggt Statusänderungen."""
         if enabled == self._is_on:
             return
-        GPIO.output(FAN_PIN, GPIO.HIGH if enabled else GPIO.LOW)
+        self._pin.value = enabled
         self._is_on = enabled
         LOGGER.info(
             "Lüfter %s (CPU %.2f °C)",
