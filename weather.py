@@ -23,11 +23,6 @@ WARNINGS_ZIP_URL = (
     "https://opendata.dwd.de/weather/alerts/cap/COMMUNE_WARNING_LATEST.zip"
 )
 
-NS = {
-    "dwd": "http://www.dwd.de/forecast",
-    "kml": "http://www.opengis.net/kml/2.2",
-}
-
 
 @dataclass
 class WeatherData:
@@ -66,19 +61,40 @@ def _download(url: str) -> bytes:
 def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
     """Parst MOSMIX KML für die gewählte Station."""
     tree = ET.fromstring(kml_bytes)
-    timesteps = [
-        datetime.fromisoformat(ts.text.replace("Z", "+00:00")).astimezone(TIMEZONE)
-        for ts in tree.findall(".//dwd:ForecastTimeSteps/dwd:TimeStep", NS)
-    ]
 
-    placemark = tree.find(".//kml:Placemark", NS)
+    def local_name(tag: str) -> str:
+        return tag.split("}", 1)[-1] if "}" in tag else tag
+
+    def find_value_text(node: ET.Element) -> str:
+        for child in node:
+            if local_name(child.tag) == "value":
+                return child.text or ""
+        return ""
+
+    timesteps: list[datetime] = []
+    for ts in tree.findall(".//{*}TimeStep"):
+        if ts.text:
+            timesteps.append(
+                datetime.fromisoformat(ts.text.replace("Z", "+00:00")).astimezone(
+                    TIMEZONE
+                )
+            )
+
+    placemark = tree.find(".//{*}Placemark")
     if placemark is None:
         raise ValueError("MOSMIX enthält keine Station")
 
     forecasts = {}
-    for forecast in placemark.findall(".//dwd:Forecast", NS):
-        element_name = forecast.attrib.get("{http://www.dwd.de/forecast}elementName")
-        value = forecast.findtext("dwd:value", default="", namespaces=NS)
+    for forecast in placemark.findall(".//{*}Forecast"):
+        element_name = None
+        for attr_name, attr_value in forecast.attrib.items():
+            if (
+                attr_name.endswith("elementName")
+                or local_name(attr_name) == "elementName"
+            ):
+                element_name = attr_value
+                break
+        value = find_value_text(forecast)
         if element_name:
             forecasts[element_name] = value.split()
 
@@ -86,7 +102,7 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
         series = forecasts.get(name, [])
         values: list[float | None] = []
         for entry in series:
-            if entry in ("-", ""):
+            if entry in ("-", "", "-999", "-999.0"):
                 values.append(None)
             else:
                 values.append(float(entry))
@@ -200,7 +216,12 @@ def fetch_weather() -> WeatherData:
 
     warnings: list[dict] = []
     hourly: list[dict] = []
-    today_summary: dict = {}
+    today_summary: dict = {
+        "max_temp": None,
+        "min_temp": None,
+        "sunshine_hours": None,
+        "weather_symbol": None,
+    }
 
     try:
         kml_bytes = _download(MOSMIX_URL.format(station=DWD_STATION_ID))

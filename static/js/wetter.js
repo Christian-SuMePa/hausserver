@@ -47,9 +47,9 @@ function renderWarnings(warnings) {
 }
 
 function renderSummary(summary) {
-  maxTemp.textContent = summary.max_temp !== null ? `${summary.max_temp} °C` : "—";
-  minTemp.textContent = summary.min_temp !== null ? `${summary.min_temp} °C` : "—";
-  sunDuration.textContent = summary.sunshine_hours !== null ? `${summary.sunshine_hours} h` : "—";
+  maxTemp.textContent = summary.max_temp != null ? `${summary.max_temp} °C` : "—";
+  minTemp.textContent = summary.min_temp != null ? `${summary.min_temp} °C` : "—";
+  sunDuration.textContent = summary.sunshine_hours != null ? `${summary.sunshine_hours} h` : "—";
   weatherSymbol.textContent = summary.weather_symbol || "—";
 }
 
