@@ -35,13 +35,11 @@ hausserver/
 
 ## Installation (Raspberry Pi OS)
 
-### 1) Systempakete
+### 1) Systempakete (GPIO-Stack: Adafruit Blinka)
 
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod3 || \\
-  sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod2 || \\
-  sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod
+sudo apt install -y python3 python3-venv python3-pip sqlite3 git libgpiod3
 ```
 
 ### 2) Projekt holen und virtuelles Environment
@@ -60,14 +58,14 @@ pip install -r requirements.txt
 - **DHT22** an **GPIO 23** (BCM) anschließen.
 - **Lüfter** an **GPIO 4** (BCM) anschließen (über Transistor/Relais je nach Lüfter!).
 - Stromversorgung sicherstellen und die Schaltung gemäß DHT22/Relais-Datenblatt aufbauen.
-- Falls beim Start eine Meldung wie `libgpiod.so.2: cannot open shared object file` erscheint,
-  fehlt die Bibliothek `libgpiod2`. Auf aktuellen Raspberry-Pi-OS-Versionen ist dagegen
-  `libgpiod3` verfügbar. Auf älteren Releases heißt das Paket nur `libgpiod`. In allen
-  Fällen hilft der Fallback in der Installation oben.
-- Hinweis für Systeme, auf denen **nur** `libgpiod3` verfügbar ist: `adafruit_blinka`
-  erwartet aktuell `libgpiod.so.2`. Wenn `libgpiod2` nicht verfügbar ist, kann ein
-  Kompatibilitäts-Link helfen (auf eigene Verantwortung):  
-  `sudo ln -s /usr/lib/*/libgpiod.so.3 /usr/lib/*/libgpiod.so.2`
+- Dieses Projekt nutzt den **Adafruit-Blinka GPIO-Stack** (`adafruit_blinka`, `board`, `digitalio`).
+  Dafür wird auf Raspberry Pi OS **libgpiod3** benötigt. Der verbreitete Fehler
+  `libgpiod.so.2: cannot open shared object file` tritt auf, wenn nur `libgpiod3`
+  installiert ist und ein Paket noch `libgpiod.so.2` erwartet.
+- Falls dieser Fehler dennoch erscheint (älteres Blinka oder Fremdpaket), gibt es zwei Optionen:
+  1) **Empfohlen:** Blinka aktualisieren (`pip install -U adafruit-blinka`).
+  2) **Workaround:** Kompatibilitäts-Link setzen (auf eigene Verantwortung):  
+     `sudo ln -s /usr/lib/*/libgpiod.so.3 /usr/lib/*/libgpiod.so.2`
 
 ### 4) Verzeichnisse und Rechte
 
