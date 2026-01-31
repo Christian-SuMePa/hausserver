@@ -121,8 +121,15 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
                 values.append(float(entry))
         return values
 
+    def get_series_first(names: tuple[str, ...]) -> list[float | None]:
+        for name in names:
+            series = get_series(name)
+            if series:
+                return series
+        return []
+
     temps_k = get_series("TTT")
-    precip_prob = get_series("PPPP")
+    precip_prob = get_series_first(("wwP", "wwP6"))
     precip_amount = get_series("RR1c")
     wind_speed = get_series("FF")
     wind_dir = get_series("DD")
