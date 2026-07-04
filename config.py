@@ -32,7 +32,7 @@ DATA_RETENTION_MONTHS = 6
 SMOOTHING_WINDOW = 4
 
 # Wetter (DWD OpenData)
-DWD_STATION_ID = "10433"  # Rheinstetten (MOSMIX Station, ggf. anpassen)
+DWD_STATION_ID = "10731"  # Rheinstetten (MOSMIX Station, ggf. anpassen)
 DWD_WARNING_AREA = "Rheinstetten"
 WEATHER_CACHE_MINUTES = 60
 
