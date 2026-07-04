@@ -59,13 +59,16 @@ pip install -r requirements.txt
 - **Lüfter** an **GPIO 4** (BCM) anschließen (über Transistor/Relais je nach Lüfter!).
 - Stromversorgung sicherstellen und die Schaltung gemäß DHT22/Relais-Datenblatt aufbauen.
 - Dieses Projekt nutzt den **Adafruit-Blinka GPIO-Stack** (`adafruit_blinka`, `board`, `digitalio`).
-  Dafür wird auf Raspberry Pi OS **libgpiod3** benötigt. Der verbreitete Fehler
-  `libgpiod.so.2: cannot open shared object file` tritt auf, wenn nur `libgpiod3`
-  installiert ist und ein Paket noch `libgpiod.so.2` erwartet.
-- Falls dieser Fehler dennoch erscheint (älteres Blinka oder Fremdpaket), gibt es zwei Optionen:
-  1) **Empfohlen:** Blinka aktualisieren (`pip install -U adafruit-blinka`).
-  2) **Workaround:** Kompatibilitäts-Link setzen (auf eigene Verantwortung):  
-     `sudo ln -s /usr/lib/*/libgpiod.so.3 /usr/lib/*/libgpiod.so.2`
+  Dabei erwarten `adafruit_blinka` bzw. das Binary `libgpiod_pulsein64` zur Laufzeit häufig
+  **`libgpiod.so.2`**. Unter Raspberry Pi OS ist jedoch **libgpiod3** üblich, sodass es trotz
+  installiertem Paket zu `libgpiod.so.2: cannot open shared object file` kommen kann.
+- **Empfohlen:** Blinka auf eine Version aktualisieren, die libgpiod3 unterstützt:  
+  `pip install -U adafruit-blinka`
+- **Workaround (auf eigene Verantwortung):** Kompatibilitäts-Link von `libgpiod.so.3` auf
+  `libgpiod.so.2` setzen (Beispielpfad):  
+  `sudo ln -s /usr/lib/*/libgpiod.so.3 /usr/lib/*/libgpiod.so.2`
+- Optional zur Prüfung der vorhandenen Versionen:  
+  `ldconfig -p | rg libgpiod.so`
 
 ### 4) Verzeichnisse und Rechte
 

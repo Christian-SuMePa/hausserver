@@ -3,6 +3,15 @@
 {% block content %}
 <section class="status">
   <p>System: CPU-Temperatur: <strong>{{ cpu_temp }}</strong> °C</p>
+  <p>
+    Fileserver:
+    {% if fileserver_total is not none %}
+      <strong>{{ fileserver_total }}</strong> GB
+      (belegt {{ fileserver_used }} GB / frei {{ fileserver_free }} GB)
+    {% else %}
+      <strong>nicht verfügbar</strong>
+    {% endif %}
+  </p>
 </section>
 
 <section class="tiles">

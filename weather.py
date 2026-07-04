@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -16,17 +17,12 @@ LOGGER = logging.getLogger(__name__)
 
 MOSMIX_URL = (
     "https://opendata.dwd.de/weather/local_forecasts/mos/"
-    "MOSMIX_L/single_stations/{station}/kml/MOSMIX_L_LATEST_{station}.kml"
+    "MOSMIX_L/single_stations/{station}/kml/MOSMIX_L_LATEST_{station}.kmz"
 )
 
-WARNINGS_ZIP_URL = (
-    "https://opendata.dwd.de/weather/alerts/cap/COMMUNE_WARNING_LATEST.zip"
+WARNINGS_BASE_URL = (
+    "https://opendata.dwd.de/weather/alerts/cap/COMMUNEUNION_DWD_STAT/"
 )
-
-NS = {
-    "dwd": "http://www.dwd.de/forecast",
-    "kml": "http://www.opengis.net/kml/2.2",
-}
 
 
 @dataclass
@@ -63,22 +59,55 @@ def _download(url: str) -> bytes:
         return response.read()
 
 
+def _download_text(url: str) -> str:
+    return _download(url).decode("utf-8", errors="ignore")
+
+
+def _extract_kml_from_kmz(kmz_bytes: bytes) -> bytes:
+    with ZipFile(BytesIO(kmz_bytes)) as zf:
+        for name in zf.namelist():
+            if name.lower().endswith(".kml"):
+                return zf.read(name)
+    raise ValueError("KMZ enthält keine KML-Datei")
+
+
 def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
     """Parst MOSMIX KML für die gewählte Station."""
     tree = ET.fromstring(kml_bytes)
-    timesteps = [
-        datetime.fromisoformat(ts.text.replace("Z", "+00:00")).astimezone(TIMEZONE)
-        for ts in tree.findall(".//dwd:ForecastTimeSteps/dwd:TimeStep", NS)
-    ]
 
-    placemark = tree.find(".//kml:Placemark", NS)
+    def local_name(tag: str) -> str:
+        return tag.split("}", 1)[-1] if "}" in tag else tag
+
+    def find_value_text(node: ET.Element) -> str:
+        for child in node:
+            if local_name(child.tag) == "value":
+                return child.text or ""
+        return ""
+
+    timesteps: list[datetime] = []
+    for ts in tree.findall(".//{*}TimeStep"):
+        if ts.text:
+            timesteps.append(
+                datetime.fromisoformat(ts.text.replace("Z", "+00:00")).astimezone(
+                    TIMEZONE
+                )
+            )
+
+    placemark = tree.find(".//{*}Placemark")
     if placemark is None:
         raise ValueError("MOSMIX enthält keine Station")
 
     forecasts = {}
-    for forecast in placemark.findall(".//dwd:Forecast", NS):
-        element_name = forecast.attrib.get("{http://www.dwd.de/forecast}elementName")
-        value = forecast.findtext("dwd:value", default="", namespaces=NS)
+    for forecast in placemark.findall(".//{*}Forecast"):
+        element_name = None
+        for attr_name, attr_value in forecast.attrib.items():
+            if (
+                attr_name.endswith("elementName")
+                or local_name(attr_name) == "elementName"
+            ):
+                element_name = attr_value
+                break
+        value = find_value_text(forecast)
         if element_name:
             forecasts[element_name] = value.split()
 
@@ -86,14 +115,21 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
         series = forecasts.get(name, [])
         values: list[float | None] = []
         for entry in series:
-            if entry in ("-", ""):
+            if entry in ("-", "", "-999", "-999.0"):
                 values.append(None)
             else:
                 values.append(float(entry))
         return values
 
+    def get_series_first(names: tuple[str, ...]) -> list[float | None]:
+        for name in names:
+            series = get_series(name)
+            if series:
+                return series
+        return []
+
     temps_k = get_series("TTT")
-    precip_prob = get_series("PPPP")
+    precip_prob = get_series_first(("wwP", "wwP6"))
     precip_amount = get_series("RR1c")
     wind_speed = get_series("FF")
     wind_dir = get_series("DD")
@@ -139,6 +175,49 @@ def _parse_mosmix(kml_bytes: bytes) -> tuple[list[dict], dict]:
     return hourly, today_summary
 
 
+def _parse_warning_xml(xml_bytes: bytes) -> list[dict]:
+    tree = ET.fromstring(xml_bytes)
+    warnings: list[dict] = []
+
+    def local_name(tag: str) -> str:
+        return tag.split("}", 1)[-1] if "}" in tag else tag
+
+    for alert in tree.findall(".//{*}alert"):
+        for info in alert.findall(".//{*}info"):
+            for area in info.findall(".//{*}area"):
+                desc = ""
+                for child in area:
+                    if local_name(child.tag) == "areaDesc":
+                        desc = (child.text or "").strip()
+                        break
+                if not desc:
+                    continue
+                if DWD_WARNING_AREA.lower() not in desc.lower():
+                    continue
+                warnings.append(
+                    {
+                        "area": desc,
+                        "severity": info.findtext(".//{*}severity", default=""),
+                        "onset": info.findtext(".//{*}onset", default=""),
+                        "expires": info.findtext(".//{*}expires", default=""),
+                        "headline": info.findtext(".//{*}headline", default=""),
+                        "description": info.findtext(".//{*}description", default=""),
+                    }
+                )
+    return warnings
+
+
+def _fetch_latest_warning_xml() -> bytes:
+    listing = _download_text(WARNINGS_BASE_URL)
+    matches = re.findall(
+        r'href="(Z_CAP_C_EDZW_\\d{14}_PVW_STATUS_PREMIUMD\\.xml)"', listing
+    )
+    if not matches:
+        raise ValueError("Keine Warnungsdateien gefunden")
+    latest_name = max(matches)
+    return _download(f"{WARNINGS_BASE_URL}{latest_name}")
+
+
 def _weather_symbol_from_code(code: float | None) -> str:
     if code is None:
         return "❔"
@@ -160,39 +239,6 @@ def _weather_symbol_from_code(code: float | None) -> str:
     return "☁️"
 
 
-def _parse_warnings(zip_bytes: bytes) -> list[dict]:
-    """Parst CAP Warnungen und filtert nach Gebiet."""
-    warnings: list[dict] = []
-    with ZipFile(BytesIO(zip_bytes)) as zf:
-        for name in zf.namelist():
-            if not name.endswith(".xml"):
-                continue
-            with zf.open(name) as file:
-                tree = ET.parse(file)
-            info = tree.find(".//info")
-            if info is None:
-                continue
-            area_desc = info.findtext("area/areaDesc", default="")
-            if DWD_WARNING_AREA.lower() not in area_desc.lower():
-                continue
-            severity = info.findtext("severity", default="")
-            onset = info.findtext("onset", default="")
-            expires = info.findtext("expires", default="")
-            headline = info.findtext("headline", default="")
-            description = info.findtext("description", default="")
-            warnings.append(
-                {
-                    "area": area_desc,
-                    "severity": severity,
-                    "onset": onset,
-                    "expires": expires,
-                    "headline": headline,
-                    "description": description,
-                }
-            )
-    return warnings
-
-
 def fetch_weather() -> WeatherData:
     """Lädt Wetterdaten (MOSMIX + Warnungen) mit Cache."""
     if WEATHER_CACHE.is_valid() and WEATHER_CACHE.get() is not None:
@@ -200,17 +246,23 @@ def fetch_weather() -> WeatherData:
 
     warnings: list[dict] = []
     hourly: list[dict] = []
-    today_summary: dict = {}
+    today_summary: dict = {
+        "max_temp": None,
+        "min_temp": None,
+        "sunshine_hours": None,
+        "weather_symbol": None,
+    }
 
     try:
-        kml_bytes = _download(MOSMIX_URL.format(station=DWD_STATION_ID))
+        kmz_bytes = _download(MOSMIX_URL.format(station=DWD_STATION_ID))
+        kml_bytes = _extract_kml_from_kmz(kmz_bytes)
         hourly, today_summary = _parse_mosmix(kml_bytes)
     except Exception:
         LOGGER.exception("Fehler beim Laden der MOSMIX Daten")
 
     try:
-        warnings_zip = _download(WARNINGS_ZIP_URL)
-        warnings = _parse_warnings(warnings_zip)
+        warnings_xml = _fetch_latest_warning_xml()
+        warnings = _parse_warning_xml(warnings_xml)
     except Exception:
         LOGGER.exception("Fehler beim Laden der Wetterwarnungen")
 
